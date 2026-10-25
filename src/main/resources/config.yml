@@ -1,10 +1,13 @@
 # SupaChat configuration
 chat:
+  # LuckPerms placeholders are configurable. Defaults use the standard prefix/suffix placeholders.
+  prefix-placeholder: "%luckperms_prefix%"
+  suffix-placeholder: "%luckperms_suffix%"
   # Supports MiniMessage tags and legacy &-colors, including RGB hex colors.
-  format: "%prefix%%player%%chat_color%: %message%"
+  format: "%prefix%%player%%suffix%%chat_color%: %message%"
   search-enabled: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇʀʏ ɪɴ ᴄʜᴀᴛ. ᴜsᴇ /chat normal ᴛᴏ ʟᴇᴀᴠᴇ."
   stats-tooltip: |-
-    %prefix%%player%
+    %prefix%%player%%suffix%
     <gray><strikethrough>----------
     <#00FC00><bold>$</bold> <white>Money <#00FC00>%vault_eco_balance_formatted%
     <#FC0000>🗡 <white>Kills <#FC0000>%statistic_player_kills%
