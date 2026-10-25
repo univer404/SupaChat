@@ -1,16 +1,15 @@
 # SupaChat configuration
 chat:
-  # Supports MiniMessage tags and <##RRGGBB> / &##RRGGBB hex forms.
+  # Supports MiniMessage tags and legacy &-colors, including RGB hex colors.
   format: "%prefix%%player%%chat_color%: %message%"
-  # Message shown when a player enters a search mode.
   search-enabled: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇʀʏ ɪɴ ᴄʜᴀᴛ. ᴜsᴇ /chat normal ᴛᴏ ʟᴇᴀᴠᴇ."
   stats-tooltip: |-
     %prefix%%player%
     <gray><strikethrough>----------
-    <#00FC00><bold>$</bold> <white>Money <#00FC00>%coinsengine_balance_short_money%
-    <#FC0000>🗡 <white>Kills <#FC0000>%skstatistics_kills%
-    <#FCE300>⌚ <white>Playtime <#FCE300>%playtime_timed%
-    <#F97603>☠ <white>Deaths <#F97603>%skstatistics_deaths%
+    <#00FC00><bold>$</bold> <white>Money <#00FC00>%vault_eco_balance_formatted%
+    <#FC0000>🗡 <white>Kills <#FC0000>%statistic_player_kills%
+    <#FCE300>⌚ <white>Playtime <#FCE300>%statistic_time_played%
+    <#F97603>☠ <white>Deaths <#F97603>%statistic_deaths%
     <#A303F9>★ <white>Shards <#A303F9>%coinsengine_balance_short_shards%
     <gray><strikethrough>----------
     <gray>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ sᴛᴀᴛs
