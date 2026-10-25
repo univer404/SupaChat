@@ -132,7 +132,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
                 .replace("%prefix%", prefix)
                 .replace("%player%", marker)
                 .replace("%chat_color%", chatColor)
-                .replace("%message%", message);
+                .replace("%message%", MINI.escapeTags(message));
         Component result = Component.empty();
         String[] pieces = custom.split(Pattern.quote(marker), 2);
         if (pieces.length == 2) {
@@ -225,8 +225,45 @@ public final class SupaChat extends JavaPlugin implements Listener {
     }
 
     private boolean isSkriptFlagSet(Player player, String key) {
-        // Skript variables are not part of Bukkit's public API. Until an explicit
-        // Skript integration is installed, let Skript/staff-chat plugins handle this.
+        // Read the existing Skript flag reflectively when Skript is installed. This
+        // avoids a hard dependency on Skript internals while preserving staff-chat bypass.
+        if (!Bukkit.getPluginManager().isPluginEnabled("Skript")) {
+            return false;
+        }
+
+        String variableName = key + "::" + player.getUniqueId();
+        try {
+            Class<?> variables = Class.forName("ch.njol.skript.variables.Variables");
+            for (java.lang.reflect.Method method : variables.getMethods()) {
+                if (!method.getName().equals("getVariable") || method.getParameterCount() == 0
+                        || method.getParameterTypes()[0] != String.class) {
+                    continue;
+                }
+                Class<?>[] types = method.getParameterTypes();
+                Object[] arguments = new Object[types.length];
+                arguments[0] = variableName;
+                boolean supported = true;
+                for (int i = 1; i < types.length; i++) {
+                    if (types[i] == boolean.class || types[i] == Boolean.class) {
+                        arguments[i] = false;
+                    } else if (!types[i].isPrimitive()) {
+                        arguments[i] = null;
+                    } else {
+                        supported = false;
+                        break;
+                    }
+                }
+                if (!supported) {
+                    continue;
+                }
+                Object value = method.invoke(null, arguments);
+                if (value != null && !Boolean.FALSE.equals(value) && !value.toString().isBlank()) {
+                    return true;
+                }
+            }
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            getLogger().fine("Could not read Skript variable " + variableName + ": " + exception.getMessage());
+        }
         return false;
     }
 
