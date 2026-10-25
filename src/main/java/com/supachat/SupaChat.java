@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 public final class SupaChat extends JavaPlugin implements Listener {
     private static final Pattern HEX_LEGACY = Pattern.compile("&##([a-fA-F0-9]{6})");
     private static final Pattern HEX_MINI = Pattern.compile("<##([a-fA-F0-9]{6})>");
-    private static final Pattern LEGACY_CODE = Pattern.compile("(?i)&([0-9a-fk-or])");
+    private static final Pattern LEGACY_CODE = Pattern.compile("(?i)[&§]([0-9a-fk-or])");
     private static final MiniMessage MINI = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
@@ -166,11 +166,13 @@ public final class SupaChat extends JavaPlugin implements Listener {
     private Component parse(String input) {
         String normalized = HEX_LEGACY.matcher(input).replaceAll("<#$1>");
         normalized = HEX_MINI.matcher(normalized).replaceAll("<#$1>");
-        // Accept traditional &-color codes from LuckPerms and other placeholder expansions.
+        // Convert traditional & / § color codes into MiniMessage tags. This allows
+        // LuckPerms legacy prefixes and MiniMessage config text to render together.
         Matcher matcher = LEGACY_CODE.matcher(normalized);
         StringBuffer converted = new StringBuffer();
         while (matcher.find()) {
-            matcher.appendReplacement(converted, Matcher.quoteReplacement("§" + matcher.group(1)));
+            String tag = legacyCodeToTag(matcher.group(1).toLowerCase());
+            matcher.appendReplacement(converted, Matcher.quoteReplacement(tag));
         }
         matcher.appendTail(converted);
         try {
@@ -180,6 +182,34 @@ public final class SupaChat extends JavaPlugin implements Listener {
             return LEGACY.deserialize(normalized)
                     .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         }
+    }
+
+    private String legacyCodeToTag(String code) {
+        return switch (code) {
+            case "0" -> "<black>";
+            case "1" -> "<dark_blue>";
+            case "2" -> "<dark_green>";
+            case "3" -> "<dark_aqua>";
+            case "4" -> "<dark_red>";
+            case "5" -> "<dark_purple>";
+            case "6" -> "<gold>";
+            case "7" -> "<gray>";
+            case "8" -> "<dark_gray>";
+            case "9" -> "<blue>";
+            case "a" -> "<green>";
+            case "b" -> "<aqua>";
+            case "c" -> "<red>";
+            case "d" -> "<light_purple>";
+            case "e" -> "<yellow>";
+            case "f" -> "<white>";
+            case "k" -> "<obfuscated>";
+            case "l" -> "<bold>";
+            case "m" -> "<strikethrough>";
+            case "n" -> "<underlined>";
+            case "o" -> "<italic>";
+            case "r" -> "<reset>";
+            default -> "";
+        };
     }
 
     private String plainText(Component component) {
