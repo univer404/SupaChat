@@ -2,9 +2,13 @@ package com.supachat;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -17,19 +21,19 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SupaChat extends JavaPlugin implements Listener {
     private static final Pattern HEX_LEGACY = Pattern.compile("&##([a-fA-F0-9]{6})");
     private static final Pattern HEX_MINI = Pattern.compile("<##([a-fA-F0-9]{6})>");
+    private static final Pattern LEGACY_CODE = Pattern.compile("(?i)&([0-9a-fk-or])");
     private static final MiniMessage MINI = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
-    private final Set<UUID> chatDisabled = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> auctionSearch = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> bountySearch = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> chatDisabled = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<UUID> auctionSearch = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<UUID> bountySearch = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     @Override
     public void onEnable() {
@@ -50,38 +54,46 @@ public final class SupaChat extends JavaPlugin implements Listener {
         Player sender = event.getPlayer();
         UUID id = sender.getUniqueId();
 
-        // Match the Skript's priority: bounty search is checked before auction search.
+        // Search modes consume the next message, just like the original Skript.
         if (bountySearch.remove(id)) {
             event.setCancelled(true);
             String query = plainText(event.message());
-            runSearchCommand(sender, getConfig().getString("chat.commands.bounty", "bounty"), query);
+            Bukkit.getScheduler().runTask(this, () ->
+                    runSearchCommand(sender, getConfig().getString("chat.commands.bounty", "bounty"), query));
             return;
         }
         if (auctionSearch.remove(id)) {
             event.setCancelled(true);
             String query = plainText(event.message());
-            runSearchCommand(sender, getConfig().getString("chat.commands.auction", "market search"), query);
+            Bukkit.getScheduler().runTask(this, () ->
+                    runSearchCommand(sender, getConfig().getString("chat.commands.auction", "market search"), query));
             return;
         }
 
-        // Staff chat owns its messages. Do not intercept if the sender is in staff chat mode.
+        // Allow staff-chat plugins/Skript handlers to process their own messages.
         if (isSkriptFlagSet(sender, "staffchattoggle")) {
             return;
         }
 
+        // Always cancel custom chat immediately, then perform PlaceholderAPI and Bukkit
+        // operations on the main server thread (AsyncChatEvent can run asynchronously).
         event.setCancelled(true);
         if (chatDisabled.contains(id)) {
             return;
         }
 
         String message = plainText(event.message());
-        Component formatted = formatChat(sender, message);
-        for (Player recipient : Bukkit.getOnlinePlayers()) {
-            if (!chatDisabled.contains(recipient.getUniqueId())) {
-                recipient.sendMessage(formatted);
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (!sender.isOnline() || chatDisabled.contains(id)) {
+                return;
             }
-        }
-        getLogger().fine("Chat message formatted for " + sender.getName());
+            Component formatted = formatChat(sender, message);
+            for (Player recipient : Bukkit.getOnlinePlayers()) {
+                if (!chatDisabled.contains(recipient.getUniqueId())) {
+                    recipient.sendMessage(formatted);
+                }
+            }
+        });
     }
 
     private Component formatChat(Player player, String message) {
@@ -91,31 +103,49 @@ public final class SupaChat extends JavaPlugin implements Listener {
                 .replace("%prefix%", prefix)
                 .replace("%player%", player.getName())
                 .replace("%chat_color%", chatColor)
-                .replace("%message%", MINI.escapeTags(message));
+                .replace("%message%", message);
 
-        Component chat = parse(format);
-        String tooltip = getConfig().getString("chat.stats-tooltip", "%prefix%%player%")
+        String tooltipText = getConfig().getString("chat.stats-tooltip", "%prefix%%player%")
                 .replace("%prefix%", prefix)
                 .replace("%player%", player.getName());
-        tooltip = expandPlaceholders(player, tooltip);
+        tooltipText = expandPlaceholders(player, tooltipText);
+        Component hover = parse(tooltipText);
+
         String statsCommand = getConfig().getString("chat.stats-command", "/stats %player%")
                 .replace("%player%", player.getName());
 
-        Component hover = parse(tooltip);
-        Component nameAndMessage = chat;
-        // Attach tooltip/click behavior to the player-name portion when using the default format.
-        String nameToken = prefix + player.getName();
-        String renderedFormat = format;
-        if (renderedFormat.contains(nameToken)) {
-            String[] parts = renderedFormat.split(Pattern.quote(nameToken), 2);
-            Component before = parse(parts[0]);
-            Component name = parse(nameToken).hoverEvent(hover).clickEvent(ClickEvent.runCommand(statsCommand));
-            Component after = parts.length > 1 ? parse(parts[1]) : Component.empty();
-            nameAndMessage = before.append(name).append(after);
-        } else {
-            nameAndMessage = chat.hoverEvent(hover).clickEvent(ClickEvent.runCommand(statsCommand));
+        // Build the default format as components so prefixes containing legacy colors or
+        // MiniMessage tags do not break the clickable-name detection.
+        String defaultFormat = "%prefix%%player%%chat_color%: %message%";
+        if (getConfig().getString("chat.format", defaultFormat).equals(defaultFormat)) {
+            Component name = parse(prefix).append(Component.text(player.getName())
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                    .hoverEvent(HoverEvent.showText(hover))
+                    .clickEvent(ClickEvent.runCommand(statsCommand)));
+            Component body = parse(chatColor + ": ").append(parse(message));
+            return name.append(body).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         }
-        return nameAndMessage;
+
+        // Custom formats remain configurable; use a safe marker to attach click/hover
+        // behavior even when the prefix includes formatting codes.
+        String marker = "SUPACHAT_PLAYER_NAME_MARKER";
+        String custom = getConfig().getString("chat.format", defaultFormat)
+                .replace("%prefix%", prefix)
+                .replace("%player%", marker)
+                .replace("%chat_color%", chatColor)
+                .replace("%message%", message);
+        Component result = Component.empty();
+        String[] pieces = custom.split(Pattern.quote(marker), 2);
+        if (pieces.length == 2) {
+            Component clickableName = Component.text(player.getName())
+                    .hoverEvent(HoverEvent.showText(hover))
+                    .clickEvent(ClickEvent.runCommand(statsCommand));
+            result = parse(pieces[0]).append(clickableName).append(parse(pieces[1]));
+        } else {
+            result = parse(custom).hoverEvent(HoverEvent.showText(hover))
+                    .clickEvent(ClickEvent.runCommand(statsCommand));
+        }
+        return result.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
     private String placeholder(Player player, String text) {
@@ -136,26 +166,38 @@ public final class SupaChat extends JavaPlugin implements Listener {
     private Component parse(String input) {
         String normalized = HEX_LEGACY.matcher(input).replaceAll("<#$1>");
         normalized = HEX_MINI.matcher(normalized).replaceAll("<#$1>");
+        // Accept traditional &-color codes from LuckPerms and other placeholder expansions.
+        Matcher matcher = LEGACY_CODE.matcher(normalized);
+        StringBuffer converted = new StringBuffer();
+        while (matcher.find()) {
+            matcher.appendReplacement(converted, Matcher.quoteReplacement("§" + matcher.group(1)));
+        }
+        matcher.appendTail(converted);
         try {
-            return MINI.deserialize(normalized);
+            return MINI.deserialize(converted.toString())
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         } catch (RuntimeException ignored) {
-            return LEGACY.deserialize(normalized);
+            return LEGACY.deserialize(normalized)
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         }
     }
 
     private String plainText(Component component) {
-        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(component);
+        return PlainTextComponentSerializer.plainText().serialize(component);
     }
 
     private void runSearchCommand(Player player, String configuredCommand, String query) {
+        if (!player.isOnline()) {
+            return;
+        }
         String command = configuredCommand.replace("%player%", player.getName())
                 + (query.isBlank() ? "" : " " + query);
-        Bukkit.getScheduler().runTask(this, () -> player.performCommand(command));
+        player.performCommand(command);
     }
 
     private boolean isSkriptFlagSet(Player player, String key) {
-        // Skript variables are not accessible through Bukkit's API. This hook safely checks
-        // for the optional Skript plugin without assuming its internal variable storage.
+        // Skript variables are not part of Bukkit's public API. Until an explicit
+        // Skript integration is installed, let Skript/staff-chat plugins handle this.
         return false;
     }
 
