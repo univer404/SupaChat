@@ -2,7 +2,6 @@ package com.supachat;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -103,7 +102,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
                 .replace("%prefix%", prefix)
                 .replace("%player%", player.getName())
                 .replace("%chat_color%", chatColor)
-                .replace("%message%", message);
+                .replace("%message%", MINI.escapeTags(message));
 
         String tooltipText = getConfig().getString("chat.stats-tooltip", "%prefix%%player%")
                 .replace("%prefix%", prefix)
@@ -122,7 +121,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
                     .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
                     .hoverEvent(HoverEvent.showText(hover))
                     .clickEvent(ClickEvent.runCommand(statsCommand)));
-            Component body = parse(chatColor + ": ").append(parse(message));
+            Component body = parse(chatColor + ": " + MINI.escapeTags(message));
             return name.append(body).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         }
 
