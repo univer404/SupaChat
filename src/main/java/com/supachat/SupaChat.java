@@ -91,7 +91,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
                 .replace("%prefix%", prefix)
                 .replace("%player%", player.getName())
                 .replace("%chat_color%", chatColor)
-                .replace("%message%", message);
+                .replace("%message%", MINI.escapeTags(message));
 
         Component chat = parse(format);
         String tooltip = getConfig().getString("chat.stats-tooltip", "%prefix%%player%")
