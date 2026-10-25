@@ -96,17 +96,20 @@ public final class SupaChat extends JavaPlugin implements Listener {
     }
 
     private Component formatChat(Player player, String message) {
-        String prefix = placeholder(player, "%luckperms_meta_legacy-prefix%");
+        String prefix = placeholder(player, getConfig().getString("chat.prefix-placeholder", "%luckperms_prefix%"));
+        String suffix = placeholder(player, getConfig().getString("chat.suffix-placeholder", "%luckperms_suffix%"));
         String chatColor = placeholder(player, "%luckperms_meta_chat-color%");
-        String format = getConfig().getString("chat.format", "%prefix%%player%%chat_color%: %message%")
+        String format = getConfig().getString("chat.format", "%prefix%%player%%suffix%%chat_color%: %message%")
                 .replace("%prefix%", prefix)
                 .replace("%player%", player.getName())
+                .replace("%suffix%", suffix)
                 .replace("%chat_color%", chatColor)
                 .replace("%message%", MINI.escapeTags(message));
 
         String tooltipText = getConfig().getString("chat.stats-tooltip", "%prefix%%player%")
                 .replace("%prefix%", prefix)
-                .replace("%player%", player.getName());
+                .replace("%player%", player.getName())
+                .replace("%suffix%", suffix);
         tooltipText = expandPlaceholders(player, tooltipText);
         Component hover = parse(tooltipText);
 
@@ -115,7 +118,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
 
         // Build the default format as components so prefixes containing legacy colors or
         // MiniMessage tags do not break the clickable-name detection.
-        String defaultFormat = "%prefix%%player%%chat_color%: %message%";
+        String defaultFormat = "%prefix%%player%%suffix%%chat_color%: %message%";
         if (getConfig().getString("chat.format", defaultFormat).equals(defaultFormat)) {
             Component name = parse(prefix).append(Component.text(player.getName())
                     .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
@@ -131,6 +134,7 @@ public final class SupaChat extends JavaPlugin implements Listener {
         String custom = getConfig().getString("chat.format", defaultFormat)
                 .replace("%prefix%", prefix)
                 .replace("%player%", marker)
+                .replace("%suffix%", suffix)
                 .replace("%chat_color%", chatColor)
                 .replace("%message%", MINI.escapeTags(message));
         Component result = Component.empty();
