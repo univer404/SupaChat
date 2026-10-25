@@ -1,0 +1,15 @@
+name: SupaChat
+version: 1.0.0
+main: com.supachat.SupaChat
+api-version: '1.21'
+description: Custom chat formatting with player-stat tooltips and auction/bounty search routing.
+softdepend: [PlaceholderAPI, LuckPerms, Skript]
+commands:
+  chat:
+    description: Toggle chat visibility or enter a chat-search mode.
+    usage: /chat <toggle|auction|bounty|normal>
+    aliases: [chattoggle]
+permissions:
+  supachat.admin:
+    description: Allows managing SupaChat settings.
+    default: op
