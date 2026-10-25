@@ -1,0 +1,27 @@
+# SupaChat configuration
+chat:
+  # Supports MiniMessage tags and <##RRGGBB> / &##RRGGBB hex forms.
+  format: "%prefix%%player%%chat_color%: %message%"
+  # Message shown when a player enters a search mode.
+  search-enabled: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇʀʏ ɪɴ ᴄʜᴀᴛ. ᴜsᴇ /chat normal ᴛᴏ ʟᴇᴀᴠᴇ."
+  stats-tooltip: |-
+    %prefix%%player%
+    <gray><strikethrough>----------
+    <#00FC00><bold>$</bold> <white>Money <#00FC00>%coinsengine_balance_short_money%
+    <#FC0000>🗡 <white>Kills <#FC0000>%skstatistics_kills%
+    <#FCE300>⌚ <white>Playtime <#FCE300>%playtime_timed%
+    <#F97603>☠ <white>Deaths <#F97603>%skstatistics_deaths%
+    <#A303F9>★ <white>Shards <#A303F9>%coinsengine_balance_short_shards%
+    <gray><strikethrough>----------
+    <gray>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ sᴛᴀᴛs
+  stats-command: "/stats %player%"
+  toggle-on: "<gray>ᴄʜᴀᴛ ɪs ɴᴏᴡ <green>ᴇɴᴀʙʟᴇᴅ<gray>."
+  toggle-off: "<gray>ᴄʜᴀᴛ ɪs ɴᴏᴡ <red>ᴅɪsᴀʙʟᴇᴅ<gray>."
+  normal-mode: "<gray>ᴄʜᴀᴛ ᴍᴏᴅᴇ sᴇᴛ ᴛᴏ <white>ɴᴏʀᴍᴀʟ<gray>."
+  auction-mode: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ᴀᴜᴄᴛɪᴏɴ sᴇᴀʀᴄʜ ɪɴ ᴄʜᴀᴛ."
+  bounty-mode: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ʙᴏᴜɴᴛʏ sᴇᴀʀᴄʜ ɪɴ ᴄʜᴀᴛ."
+  no-permission: "<red>ʏᴏᴜ ᴅᴏ ɴᴏᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪssɪᴏɴ."
+  unknown-mode: "<gray>ᴜsᴀɢᴇ: <white>/chat <toggle|auction|bounty|normal>"
+  commands:
+    auction: "market search"
+    bounty: "bounty"
