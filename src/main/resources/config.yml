@@ -8,7 +8,6 @@ chat:
   search-enabled: "<gray>ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇʀʏ ɪɴ ᴄʜᴀᴛ. ᴜsᴇ /chat normal ᴛᴏ ʟᴇᴀᴠᴇ."
   stats-tooltip: |-
     %prefix%%player%%suffix%
-    <gray><strikethrough>----------
     <#00FC00><bold>$</bold> <white>Money <#00FC00>%vault_eco_balance_formatted%
     <#FC0000>🗡 <white>Kills <#FC0000>%statistic_player_kills%
     <#FCE300>⌚ <white>Playtime <#FCE300>%statistic_time_played%
